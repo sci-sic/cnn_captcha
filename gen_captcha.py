@@ -5,14 +5,15 @@ import string
 import os
 import shutil
 import uuid
-import random
 from captcha.image import ImageCaptcha
+import random
 
 import itertools
 
 FLAGS = None
 META_FILENAME = 'meta.json'
 
+random.seed(2018)
 
 def get_choices():
     choices = [
@@ -23,20 +24,32 @@ def get_choices():
     return tuple([i for is_selected, subset in choices for i in subset if is_selected])
 
 
-def _gen_captcha(img_dir, num_per_image, n, width, height, choices):
-    if os.path.exists(img_dir):
-        shutil.rmtree(img_dir)
-    if not os.path.exists(img_dir):
-        os.makedirs(img_dir)
+def _gen_captcha(img_dir_train,img_dir_test, num_per_image, n, width, height, choices):
+    if os.path.exists(img_dir_train):
+        shutil.rmtree(img_dir_train)
+    if not os.path.exists(img_dir_train):
+        os.makedirs(img_dir_train)
+
+    if os.path.exists(img_dir_test):
+        shutil.rmtree(img_dir_test)
+    if not os.path.exists(img_dir_test):
+        os.makedirs(img_dir_test)
+
 
     image = ImageCaptcha(width=width, height=height)
 
-    print('generating %s epoches of captchas in %s' % (n, img_dir))
+    print('generating %s epoches of captchas in %s' % (n, img_dir_train))
     for _ in range(n):
-        for captcha in [''.join(i) for i in itertools.permutations(choices, num_per_image) if random.random()>=0.956]:
-            fn = os.path.join(img_dir, '%s_.png' % (captcha))
+        check=0
+        for captcha in [''.join(i) for i in itertools.permutations(choices, num_per_image) if random.random()>=0.985]:
+            if random.random()<0.8:
+                fn = os.path.join(img_dir_train, '%s_.png' % (captcha))
+            else:
+                fn = os.path.join(img_dir_test, '%s_.png' % (captcha))
             image.write(captcha, fn)
-            # print(captcha)
+            check=check+1
+            if check%1000 ==0:
+                print(check)
 
 
 def build_file_path(x):
@@ -65,7 +78,7 @@ def gen_dataset():
 
     print('%s choices: %s' % (len(choices), ''.join(choices) or None))
 
-    _gen_captcha(build_file_path('train'), num_per_image, n_epoch, width, height, choices=choices)
+    _gen_captcha(build_file_path('train'),build_file_path('test'), num_per_image, n_epoch, width, height, choices=choices)
     # _gen_captcha(build_file_path('test'), num_per_image, max(1, int(n_epoch * test_ratio)), width, height, choices=choices)
 
     meta_filename = build_file_path(META_FILENAME)
